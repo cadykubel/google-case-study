@@ -1,0 +1,147 @@
+#-----Cyclistic Data Analysis-----
+
+#install necessary packages
+install.packages('tidyverse') #data import and calculations
+install.packages('lubridate') #date functions
+install.packages('hms') #time
+install.packages('readr') #read delimited files
+install.packages('data.table') #extension of base R's data.frame
+
+#load libraries
+library(tidyverse)
+library(lubridate)
+library(hms)
+library(readr)
+library(data.table)
+
+#collecting the data
+##load original .csv files of bike trip data from January 2022 to December 2022
+jan22_df <- read_csv("jan2022-divvy-original.csv")
+feb22_df <- read_csv("feb2022-divvy-original.csv")
+mar22_df <- read_csv("mar2022-divvy-original.csv")
+apr22_df <- read_csv("apr2022-divvy-original.csv")
+may22_df <- read_csv("may2022-divvy-original.csv")
+jun22_df <- read_csv("jun2022-divvy-original.csv")
+jul22_df <- read_csv("jul2022-divvy-original.csv")
+aug22_df <- read_csv("aug2022-divvy-original.csv")
+sep22_df <- read_csv("sep2022-divvy-original.csv")
+oct22_df <- read_csv("oct2022-divvy-original.csv")
+nov22_df <- read_csv("nov2022-divvy-original.csv")
+dec22_df <- read_csv("dec2022-divvy-original.csv")
+
+#combine all files into single data frame
+cyclistic22_df <- rbind(jan22_df,feb22_df,mar22_df,apr22_df,may22_df,jun22_df,jul22_df,aug22_df,sep22_df,oct22_df,nov22_df,dec22_df)
+
+#remove month files to free up space
+remove(jan22_df,feb22_df,mar22_df,apr22_df,may22_df,jun22_df,jul22_df,aug22_df,sep22_df,oct22_df,nov22_df,dec22_df)
+
+#add ride_length column by subtracting started_at time from ended_at time
+cyclistic22_df$ride_length <- difftime(cyclistic22_df$ended_at, cyclistic22_df$started_at, units = "mins")
+
+#add day_of_week column
+cyclistic22_df$day_of_week <- wday(cyclistic22_df$started_at)
+
+#check that new columns were created
+colnames(cyclistic22_df)
+
+#create new data frame for date and month columns
+cyclistic22_df_2 <- cyclistic22_df
+cyclistic22_df_2$date <- as.Date(cyclistic22_df_2$started_at)
+cyclistic22_df_2$month <- format(as.Date(cyclistic22_df_2$date), "%m")
+cyclistic22_df_2$day_of_week <- format(as.Date(cyclistic22_df_2$date), "%A")
+
+#clean the data
+##remove duplicate rows
+cyclistic22_df_2 <- cyclistic22_df_2 %>% 
+  distinct()
+
+#remove any rows with NA values
+cyclistic22_df_2 <- na.omit(cyclistic22_df_2)
+
+#remove data where ride_length is negative or 0
+cyclistic22_df_2 <- cyclistic22_df_2[!(cyclistic22_df_2$ride_length <=0),]
+
+#remove unnecessary columns
+cyclistic22_df_2 <- cyclistic22_df_2 %>% 
+  select(-c(ride_id, start_station_id, end_station_id,start_lat,start_lng,end_lat,end_lng))
+
+#analyzing the data
+view(cyclistic22_df_2)
+
+#----------total number of rides----------
+
+##count total number of rides
+nrow(cyclistic22_df_2)
+
+##by member type
+cyclistic22_df_2 %>%
+  group_by(member_casual) %>% 
+  count(member_casual)
+
+##by bike type and member type
+cyclistic22_df_2 %>%
+  group_by(member_casual,rideable_type) %>%
+  count(rideable_type)
+
+#---total by day of week---
+##total rides
+cyclistic22_df_2 %>% 
+  count(day_of_week)
+
+##by day of week and member type
+cyclistic22_df_2 %>% 
+  group_by(member_casual) %>% 
+  count(day_of_week)
+
+#---month---
+##total rides
+cyclistic22_df_2 %>% 
+  count(month)
+
+##by member type
+cyclistic22_df_2 %>% 
+  group_by(member_casual) %>% 
+  count(month) %>% 
+  print(n=24)
+
+#----------average ride length----------
+##overall average
+avg_ride_cyclistic <- mean(cyclistic22_df_2$ride_length)
+print(avg_ride_cyclistic)
+
+##maximum and minimum ride length
+max_ride_length <- max(cyclistic22_df_2$ride_length)
+print(max_ride_length)
+
+min_ride_length <- min(cyclistic22_df_2$ride_length)
+print(min_ride_length)
+
+##by member type
+cyclistic22_df_2 %>% 
+  group_by(member_casual) %>% 
+  summarise(Mean = mean(ride_length, na.rm=TRUE))
+
+##by bike type
+cyclistic22_df_2 %>% 
+  group_by(rideable_type) %>% 
+  summarise(Mean = mean(ride_length, na.rm=TRUE))
+
+#---average by day of week---
+##overall average ride length by day of week
+cyclistic22_df_2 %>% 
+  group_by(day_of_week) %>% 
+  summarise(Mean = mean(ride_length, na.rm=TRUE))
+
+##by day of week and member type
+cyclistic22_df_2 %>% 
+  group_by(member_casual, day_of_week) %>% 
+  summarise(Mean = mean(ride_length, na.rm=TRUE))
+
+#---month---
+##overall average ride length by month
+cyclistic22_df_2 %>% 
+  group_by(month) %>% 
+  summarise(Mean = mean(ride_length, na.rm=TRUE))
+
+
+
